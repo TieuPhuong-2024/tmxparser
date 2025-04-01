@@ -18,11 +18,12 @@ configure_file(
   "include/Tmx.h.in"
   "${CMAKE_CURRENT_BINARY_DIR}/include/Tmx.h")
 
-option(USE_MINIZ  "Use miniz.c instead of zlib (default: OFF)" OFF)
-option(BUILD_SHARED_LIBS "Build shared libs, otherwise static libs. (default: ON)" ON)
-option(BUILD_TINYXML2  "Build tinyxml2 as external project (default: OFF)" OFF)
-option(BUILD_TESTS  "Build tests. (default: OFF)" OFF)
-option(BUILD_DOCS  "Build documentation. (default: OFF)" OFF)
+option(USE_MINIZ "Use miniz.c instead of zlib (default: OFF)" OFF)
+option(BUILD_SHARED_LIBS "Build shared libs. (default: ON)" ON)
+option(BUILD_STATIC_LIBS "Build static libs. (default: ON)" ON)
+option(BUILD_TINYXML2 "Build tinyxml2 as external project (default: OFF)" OFF)
+option(BUILD_TESTS "Build tests. (default: OFF)" OFF)
+option(BUILD_DOCS "Build documentation. (default: OFF)" OFF)
 
 #Dependencies Settings
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/deps.cmake)
@@ -33,60 +34,50 @@ if(NOT USE_MINIZ)
   find_package(ZLIB) #<-- build it as external project?
 endif()
 
-add_library(tmxparser "")
-
 if(BUILD_SHARED_LIBS)
+  add_library(tmxparser SHARED "")
   set_target_properties(tmxparser PROPERTIES
     SOVERSION ${TMXPARSER_VERSION_MAJOR}
     VERSION ${TMXPARSER_VERSION})
 endif()
 
-target_sources(tmxparser
-  PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/Tmx.h
-  PRIVATE src/TmxColor.cpp
-  PRIVATE include/TmxColor.h
-  PRIVATE src/TmxEllipse.cpp
-  PRIVATE include/TmxEllipse.h
-  PRIVATE src/TmxGroupLayer.cpp
-  PRIVATE include/TmxGroupLayer.h
-  PRIVATE src/TmxImage.cpp
-  PRIVATE include/TmxImage.h
-  PRIVATE src/TmxImageLayer.cpp
-  PRIVATE include/TmxImageLayer.h
-  PRIVATE src/TmxLayer.cpp
-  PRIVATE include/TmxLayer.h
-  PRIVATE src/TmxMap.cpp
-  PRIVATE include/TmxMap.h
-  PRIVATE src/TmxObject.cpp
-  PRIVATE include/TmxObject.h
-  PRIVATE src/TmxObjectGroup.cpp
-  PRIVATE include/TmxObjectGroup.h
-  PRIVATE src/TmxPolygon.cpp
-  PRIVATE include/TmxPolygon.h
-  PRIVATE src/TmxPolyline.cpp
-  PRIVATE include/TmxPolyline.h
-  PRIVATE src/TmxProperty.cpp
-  PRIVATE include/TmxProperty.h
-  PRIVATE src/TmxPropertySet.cpp
-  PRIVATE include/TmxPropertySet.h
-  PRIVATE src/TmxTerrain.cpp
-  PRIVATE include/TmxTerrain.h
-  PRIVATE src/TmxTerrainArray.cpp
-  PRIVATE include/TmxTerrainArray.h
-  PRIVATE src/TmxText.cpp
-  PRIVATE include/TmxText.h
-  PRIVATE src/TmxTile.cpp
-  PRIVATE include/TmxTile.h
-  PRIVATE src/TmxTileset.cpp
-  PRIVATE include/TmxTileset.h
-  PRIVATE src/TmxTileLayer.cpp
-  PRIVATE include/TmxTileLayer.h
-  PRIVATE src/TmxTileOffset.cpp
-  PRIVATE include/TmxTileOffset.h
-  PRIVATE src/TmxUtil.cpp
-  PRIVATE include/TmxUtil.h
-  PRIVATE src/base64/base64.cpp
-  PRIVATE include/base64/base64.h)
+if(BUILD_STATIC_LIBS)
+  add_library(tmxparser_static STATIC "")
+endif()
+
+set(SRC_FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/include/Tmx.h
+  src/TmxColor.cpp include/TmxColor.h
+  src/TmxEllipse.cpp include/TmxEllipse.h
+  src/TmxGroupLayer.cpp include/TmxGroupLayer.h
+  src/TmxImage.cpp include/TmxImage.h
+  src/TmxImageLayer.cpp include/TmxImageLayer.h
+  src/TmxLayer.cpp include/TmxLayer.h
+  src/TmxMap.cpp include/TmxMap.h
+  src/TmxObject.cpp include/TmxObject.h
+  src/TmxObjectGroup.cpp include/TmxObjectGroup.h
+  src/TmxPolygon.cpp include/TmxPolygon.h
+  src/TmxPolyline.cpp include/TmxPolyline.h
+  src/TmxProperty.cpp include/TmxProperty.h
+  src/TmxPropertySet.cpp include/TmxPropertySet.h
+  src/TmxTerrain.cpp include/TmxTerrain.h
+  src/TmxTerrainArray.cpp include/TmxTerrainArray.h
+  src/TmxText.cpp include/TmxText.h
+  src/TmxTile.cpp include/TmxTile.h
+  src/TmxTileset.cpp include/TmxTileset.h
+  src/TmxTileLayer.cpp include/TmxTileLayer.h
+  src/TmxTileOffset.cpp include/TmxTileOffset.h
+  src/TmxUtil.cpp include/TmxUtil.h
+  src/base64/base64.cpp include/base64/base64.h
+)
+
+if(BUILD_SHARED_LIBS)
+  target_sources(tmxparser PRIVATE ${SRC_FILES})
+endif()
+
+if(BUILD_STATIC_LIBS)
+  target_sources(tmxparser_static PRIVATE ${SRC_FILES})
+endif()
 
 if(USE_MINIZ)
   target_sources(tmxparser
@@ -95,45 +86,62 @@ if(USE_MINIZ)
     PRIVATE -DUSE_MINIZ)
 endif()
 
-target_include_directories(tmxparser PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+foreach(TARGET_NAME tmxparser tmxparser_static)
+  if(TARGET ${TARGET_NAME})
+    target_include_directories(${TARGET_NAME} PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:include>
+      PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+  endif()
+endforeach()
 
-target_compile_options(tmxparser
-  PRIVATE -pedantic
-  PRIVATE -Wall
-  PRIVATE -Werror=strict-prototypes
-  PRIVATE -Werror=old-style-definition
-  PRIVATE -Werror=missing-prototypes)
-if(NOT USE_MINIZ)
+if(MSVC)
   target_compile_options(tmxparser
-    PRIVATE -Werror)
+    PRIVATE /W3)
+else()
+  foreach(TARGET_NAME tmxparser tmxparser_static)
+    if(TARGET ${TARGET_NAME})
+      target_compile_options(${TARGET_NAME}
+        PRIVATE -pedantic
+        PRIVATE -Wall
+        PRIVATE -Werror=strict-prototypes
+        PRIVATE -Werror=old-style-definition
+        PRIVATE -Werror=missing-prototypes)
+    endif()
+  endforeach()
+  if(NOT USE_MINIZ)
+    target_compile_options(tmxparser PRIVATE -Werror)
+  endif()
 endif()
 
 target_compile_features(tmxparser
   PRIVATE cxx_std_11)
 
-target_link_libraries(tmxparser
-  PRIVATE tinyxml2)
-
-if(NOT USE_MINIZ)
-  target_link_libraries(tmxparser
-    PRIVATE ZLIB::ZLIB)
-endif()
+foreach(TARGET_NAME tmxparser tmxparser_static)
+  if(TARGET ${TARGET_NAME})
+    target_link_libraries(${TARGET_NAME} PRIVATE tinyxml2::tinyxml2)
+    if(NOT USE_MINIZ)
+      target_link_libraries(${TARGET_NAME} PRIVATE ZLIB::ZLIB)
+    endif()
+  endif()
+endforeach()
 
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILES_MATCHING PATTERN Tmx.h)
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  FILES_MATCHING PATTERN Tmx.h)
 
 install(DIRECTORY include/
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-install(TARGETS tmxparser EXPORT tmxparserTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+foreach(TARGET_NAME tmxparser tmxparser_static)
+  if(TARGET ${TARGET_NAME})
+    install(TARGETS ${TARGET_NAME} EXPORT tmxparserTargets
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  endif()
+endforeach()
 
 install(EXPORT tmxparserTargets
   FILE tmxparserTargets.cmake
@@ -142,7 +150,7 @@ install(EXPORT tmxparserTargets
 # pkgconfig is okay but export a CMake config file, too
 configure_file(src/tmxparser.pc.in tmxparser.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/tmxparser.pc
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 include(CMakePackageConfigHelpers)
 
@@ -157,28 +165,28 @@ write_basic_package_version_file(
   COMPATIBILITY SameMajorVersion)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/tmxparserConfig.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/tmxparserConfigVersion.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tmxparser)
+  ${CMAKE_CURRENT_BINARY_DIR}/tmxparserConfigVersion.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tmxparser)
 
 if(BUILD_TESTS)
   add_executable(run_tests test/test.cpp)
   target_compile_options(run_tests
-          PRIVATE -pedantic
-          PRIVATE -Werror
-          PRIVATE -Wall
-          PRIVATE -g)
+    PRIVATE -pedantic
+    PRIVATE -Werror
+    PRIVATE -Wall
+    PRIVATE -g)
   target_compile_features(run_tests
-          PRIVATE cxx_std_11)
+    PRIVATE cxx_std_11)
   target_link_libraries(run_tests tmxparser tinyxml2)
   file(COPY test/example
-       DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
 if(BUILD_DOCS)
   find_package(Doxygen)
   if(DOXYGEN_FOUND)
     configure_file(${PROJECT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-    add_custom_target(doc ALL ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile  COMMENT "Generating API documentation with Doxygen" VERBATIM)
+    add_custom_target(doc ALL ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile COMMENT "Generating API documentation with Doxygen" VERBATIM)
   else()
     message(WARNING "Doxygen not found! No documentation was build.")
   endif()
